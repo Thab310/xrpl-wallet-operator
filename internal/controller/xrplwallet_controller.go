@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	xrplv1 "github.com/thabelo/xrpl-wallet-operator/api/v1"
+	xrplv1 "github.com/Thab310/xrpl-wallet-operator/api/v1"
 )
 
 const (
