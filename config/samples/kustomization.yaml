@@ -1,0 +1,4 @@
+## Append samples of your project ##
+resources:
+- xrpl_v1_xrplwallet.yaml
+# +kubebuilder:scaffold:manifestskustomizesamples
