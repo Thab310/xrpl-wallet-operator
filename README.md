@@ -1,228 +1,213 @@
-# xrpl-wallet-k8s-operator
-// TODO(user): Add simple overview of use/purpose
+# XRPL Wallet Operator
 
-## Description
-// TODO(user): An in-depth paragraph about your project and overview of use
+A Kubernetes Operator for declaratively provisioning and managing XRP Ledger (XRPL) wallets.
 
-## Getting Started
+Built with Kubebuilder and Go, this operator allows you to create, fund, and monitor XRPL wallets directly from Kubernetes resources.
 
-# ═══════════════════════════════════════════════════
-#  Step 1: Create project directory
-# ═══════════════════════════════════════════════════
+---
+
+## 🚀 Overview
+
+The XRPL Wallet Operator introduces a custom resource called `XRPLWallet` that enables:
+
+- Automatic wallet generation (ed25519 keypair)
+- Secure storage of credentials in Kubernetes Secrets
+- Optional funding via XRPL testnet/devnet faucet
+- Continuous balance monitoring
+- Full lifecycle management with cleanup on deletion
+
+This brings blockchain wallet management into a **cloud-native, declarative workflow**.
+
+---
+
+## 🧠 What is an XRPL Wallet?
+
+An **XRPL wallet** is a cryptographic identity on the XRP Ledger used to:
+
+- Send and receive XRP  
+- Sign and submit transactions  
+- Interact with XRPL-based applications  
+
+Each wallet includes:
+
+- **Address** (public)  
+- **Public key**  
+- **Private key / seed** (sensitive)  
+
+This operator securely manages these credentials using Kubernetes Secrets.
+
+---
+
+## ✨ Features
+
+- 🔑 Wallet generation using ed25519
+- 🔐 Secure credential storage via Kubernetes Secrets
+- 💸 Faucet-based funding (testnet/devnet)
+- 🔄 Continuous reconciliation loop
+- 📊 Status reporting (address, balance, conditions)
+- ♻️ Idempotent design (safe across restarts)
+- 🧹 Finalizers for cleanup on deletion
+- ⚠️ Retry logic with backoff
+
+---
+
+## 🧩 Custom Resource Example
+
+```yaml
+apiVersion: xrpl.thabelo.dev/v1
+kind: XRPLWallet
+metadata:
+  name: my-testnet-wallet
+  namespace: default
+spec:
+  network: testnet       # testnet | devnet | mainnet
+  fund: true             # auto-fund via faucet (non-mainnet only)
+  fundAmount: 1000       # faucet may override
+  secretName: my-xrpl-secret
+  secretLabels:
+    app: my-app
+    env: dev
+```
+
+## 🔄 Lifecycle
+
+
+Pending → Creating → Funding → Ready
+                       ↓
+                     Error
+
+
+- **Pending**: Initial state  
+- **Creating**: Wallet + Secret creation  
+- **Funding**: Faucet funding (if enabled)  
+- **Ready**: Wallet active and monitored  
+- **Error**: Retry limit reached  
+
+---
+
+## 🏗️ Architecture
+
+- **CRD**: Defines `XRPLWallet`  
+- **Controller**:
+  - Watches resources  
+  - Reconciles desired vs actual state  
+- **Secrets**:
+  - Store wallet credentials  
+- **Finalizers**:
+  - Ensure cleanup on deletion  
+
+---
+
+## ⚙️ Prerequisites
+
+- Go 1.26+  
+- Docker Desktop  
+- kubectl  
+- k3d (or any Kubernetes cluster)  
+- make  
+
+---
+
+## 🧪 Running Locally (k3d)
+
+This project can be run fully locally with no cloud dependencies.
+
+### 1. Create a Kubernetes cluster
+
 ```bash
-mkdir xrpl-wallet-operator
-cd xrpl-wallet-operator
+k3d cluster create xrpl-operator
 ```
 
-# ═══════════════════════════════════════════════════
-#  Step 2: Initialize project
-# ═══════════════════════════════════════════════════
+### 2. Install CRDs
 
-```bash
-kubebuilder init \
-  --domain thabelo.dev \
-  --repo github.com/Thab310/xrpl-wallet-operator \
-  --owner "Thabelo Ramabulana"
-  ```
+    make install
 
-# ═══════════════════════════════════════════════════
-#  Step 3: Create the XRPLWallet API
-# ═══════════════════════════════════════════════════
+### 3. Run the controller locally
 
-```bash
-kubebuilder create api \
-  --group xrpl \
-  --version v1 \
-  --kind XRPLWallet \
-  --resource true \  #Generates the CRD types file (api/v1alpha1/xrplwallet_types.go)
-  --controller true #Generates the reconciler file (internal/controller/xrplwallet_controller.go)
-```
+    make run
 
-# ═══════════════════════════════════════════════════
-#  Step 4: Verify everything generated
-# ═══════════════════════════════════════════════════
+### 4. Apply a sample wallet
 
-```bash
-go mod tidy
-make generate
-make manifests
-```
+    kubectl apply -f config/samples/xrpl_v1_xrplwallet.yaml
 
-# ═══════════════════════════════════════════════════
-#  Step 5: Check what was created
-# ═══════════════════════════════════════════════════
+### 5. Inspect resources
 
-```bash
-echo "=== Project Structure ==="
-tree . -I vendor
+    kubectl get xrplwallets
+    kubectl describe xrplwallet my-testnet-wallet
 
-echo "=== CRD Types File ==="
-cat api/v1alpha1/xrplwallet_types.go
+### 6. View generated secret
 
-echo "=== Controller File ==="
-cat internal/controller/xrplwallet_controller.go
+    kubectl get secret my-xrpl-secret -o yaml
 
-echo "=== Sample YAML ==="
-cat config/samples/xrpl_v1alpha1_xrplwallet.yaml
+---
 
-echo "=== PROJECT File ==="
-cat PROJECT
-```
+## 🔐 Security Considerations
 
-Updated the spec and status requirements for the CRD under (api/v1alpha1/xrplwallet_types.go)
+- Secrets contain sensitive wallet credentials  
+- Use RBAC to restrict access  
+- Avoid using mainnet wallets without proper secret management  
+- Consider external secret stores (e.g., HashiCorp Vault)  
 
-```bash
-go mod tidy
-make generate
-make manifests
-```
+---
 
-Update the config/sampls/xrp_v1_xrplwallet.yaml to match the updated CRD (config/crd/bases/xrpl.thabelo.dev_xrplwallets.yaml)
+## 💡 Use Cases
 
-Add the custom packages
+- Web3 applications on Kubernetes  
+- Fintech platforms needing wallet automation  
+- XRPL development/testing environments  
+- Blockchain CI/CD pipelines  
 
-```bash
-mkdir -p internal/xrpl
-mkdir -p internal/secret
-```
+---
 
-```bash
-touch internal/xrpl/client.go
-touch internal/xrpl/wallet.go
-touch internal/xrpl/faucet.go
-touch internal/xrpl/balance.go
-touch internal/xrpl/xrpl_test.go
-```
+## 🚧 Future Improvements
 
-```bash
-touch internal/secret/builder.go
-touch internal/secret/builder_test.go
-```
+- Integration with external secret managers  
+- Transaction signing capabilities  
+- Multi-wallet orchestration  
+- Metrics and observability dashboards  
 
-### Prerequisites
-- go version v1.24.6+
-- docker version 17.03+.
-- kubectl version v1.11.3+.
-- Access to a Kubernetes v1.11.3+ cluster.
+---
 
-### To Deploy on the cluster
-**Build and push your image to the location specified by `IMG`:**
+## 🛠️ Development
 
-```sh
-make docker-build docker-push IMG=<some-registry>/xrpl-wallet-k8s-operator:tag
-```
+### Generate manifests
 
-**NOTE:** This image ought to be published in the personal registry you specified.
-And it is required to have access to pull the image from the working environment.
-Make sure you have the proper permission to the registry if the above commands don’t work.
+    make manifests
 
-**Install the CRDs into the cluster:**
+### Format and vet code
 
-```sh
-make install
-```
+    make fmt vet
 
-**Deploy the Manager to the cluster with the image specified by `IMG`:**
+### Run tests
 
-```sh
-make deploy IMG=<some-registry>/xrpl-wallet-k8s-operator:tag
-```
+    make test
 
-> **NOTE**: If you encounter RBAC errors, you may need to grant yourself cluster-admin
-privileges or be logged in as admin.
+---
 
-**Create instances of your solution**
-You can apply the samples (examples) from the config/sample:
+## 📦 Build and Deploy Controller (Optional)
 
-```sh
-kubectl apply -k config/samples/
-```
+### Build image
 
->**NOTE**: Ensure that the samples has default values to test it out.
+    make docker-build IMG=<your-image>
 
-### To Uninstall
-**Delete the instances (CRs) from the cluster:**
+### Push image
 
-```sh
-kubectl delete -k config/samples/
-```
+    make docker-push IMG=<your-image>
 
-**Delete the APIs(CRDs) from the cluster:**
+### Deploy to cluster
 
-```sh
-make uninstall
-```
+    make deploy IMG=<your-image>
 
-**UnDeploy the controller from the cluster:**
+---
 
-```sh
-make undeploy
-```
+## 📜 License
 
-## Project Distribution
+Licensed under the Apache License, Version 2.0.
 
-Following the options to release and provide this solution to the users.
+---
 
-### By providing a bundle with all YAML files
+## 🤝 Contributing
 
-1. Build the installer for the image built and published in the registry:
+Contributions, issues, and feature requests are welcome.
 
-```sh
-make build-installer IMG=<some-registry>/xrpl-wallet-k8s-operator:tag
-```
-
-**NOTE:** The makefile target mentioned above generates an 'install.yaml'
-file in the dist directory. This file contains all the resources built
-with Kustomize, which are necessary to install this project without its
-dependencies.
-
-2. Using the installer
-
-Users can just run 'kubectl apply -f <URL for YAML BUNDLE>' to install
-the project, i.e.:
-
-```sh
-kubectl apply -f https://raw.githubusercontent.com/<org>/xrpl-wallet-k8s-operator/<tag or branch>/dist/install.yaml
-```
-
-### By providing a Helm Chart
-
-1. Build the chart using the optional helm plugin
-
-```sh
-kubebuilder edit --plugins=helm/v2-alpha
-```
-
-2. See that a chart was generated under 'dist/chart', and users
-can obtain this solution from there.
-
-**NOTE:** If you change the project, you need to update the Helm Chart
-using the same command above to sync the latest changes. Furthermore,
-if you create webhooks, you need to use the above command with
-the '--force' flag and manually ensure that any custom configuration
-previously added to 'dist/chart/values.yaml' or 'dist/chart/manager/manager.yaml'
-is manually re-applied afterwards.
-
-## Contributing
-// TODO(user): Add detailed information on how you would like others to contribute to this project
-
-**NOTE:** Run `make help` for more information on all potential `make` targets
-
-More information can be found via the [Kubebuilder Documentation](https://book.kubebuilder.io/introduction.html)
-
-## License
-
-Copyright 2026 Thabelo Ramabulana.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
+Feel free to fork the repo and submit a PR.
