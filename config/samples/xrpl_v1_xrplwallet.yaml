@@ -1,9 +1,23 @@
+# apiVersion: xrpl.thabelo.dev/v1
+# kind: XRPLWallet
+# metadata:
+#   labels:
+#     app.kubernetes.io/name: xrpl-wallet-k8s-operator
+#     app.kubernetes.io/managed-by: kustomize
+#   name: xrplwallet-sample
+# spec:
+#   # TODO(user): Add fields here
+
 apiVersion: xrpl.thabelo.dev/v1
 kind: XRPLWallet
 metadata:
-  labels:
-    app.kubernetes.io/name: xrpl-wallet-k8s-operator
-    app.kubernetes.io/managed-by: kustomize
-  name: xrplwallet-sample
+  name: my-testnet-wallet
+  namespace: default
 spec:
-  # TODO(user): Add fields here
+  network: testnet       # testnet | devnet | mainnet
+  fund: true             # call the faucet after creation
+  fundAmount: 1000       # XRP to request (faucet may override)
+  secretName: my-xrpl-secret
+  secretLabels:
+    app: my-app
+    env: dev

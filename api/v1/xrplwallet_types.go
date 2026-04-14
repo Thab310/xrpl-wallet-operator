@@ -32,7 +32,7 @@ const (
 
 // State constants for XRPLWallet lifecycle.
 const (
-	Statepending  = "Pending"
+	StatePending  = "Pending"
 	StateCreating = "Creating"
 	StateFunding  = "Funding"
 	StateReady    = "Ready"
